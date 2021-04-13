@@ -52,7 +52,10 @@ void ajouterEnTete (unSnake * snake, int ligne, int colonne,int * aMange, int * 
   sem_wait(temp);
   snake->teteSnake->suiv = nouvelleTete;
   grille[(snake->teteSnake->ligne)][(snake->teteSnake->colonne)].affichage = CORP_SNAKE;
-  grille[(snake->teteSnake->ligne)][(snake->teteSnake->colonne)].couleur = 1;
+  if (id_joueur == 1)
+      grille[snake->teteSnake->ligne][snake->teteSnake->colonne].couleur = 1;
+    else
+      grille[snake->teteSnake->ligne][snake->teteSnake->colonne].couleur = 0;
   snake->teteSnake = snake->teteSnake->suiv;
   sem_post(temp);
 
@@ -87,7 +90,10 @@ void ajouterEnTete (unSnake * snake, int ligne, int colonne,int * aMange, int * 
   if(!*fail) {
     sem_wait(temp);
     *aMange = (grille[snake->teteSnake->ligne][snake->teteSnake->colonne].affichage == DU_MANGER) ? 1 : 0;
-    grille[snake->teteSnake->ligne][snake->teteSnake->colonne].couleur = 1;
+    if (id_joueur == 1)
+      grille[snake->teteSnake->ligne][snake->teteSnake->colonne].couleur = 1;
+    else
+      grille[snake->teteSnake->ligne][snake->teteSnake->colonne].couleur = 0;
     grille[snake->teteSnake->ligne][snake->teteSnake->colonne].affichage = TETE_SNAKE;
     sem_post(temp);
   }
