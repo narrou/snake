@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <semaphore.h>
+#include <time.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -51,8 +52,10 @@ void initGrille();
 void afficherMenu();
 void afficherGrille(unSnake snake);
 void gererEvenement(unSnake * snake, int touche, int * fail, uneDirection * direction,int * aMange);
-void genererDuManger(cellule ** grille);
+void genererDuManger();
 void printFail();
 void envoieSignal(int pid);
 void client_signal(int signal);
 int lancer_partie();
+void affichage(int shm_id);
+void timestampToRead(time_t rawtime);
