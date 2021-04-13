@@ -209,10 +209,61 @@ void client_signal(int signal){
     exit(1);
   }
   grille = (cellule ***) shmat(shm_id, 0, 0);
-  
+  if (grille == (cellule ***) -1){
+    perror("Erreur shmat client\n");
+    exit(1);
+  }
+  affichage(shm_id);
   lancer_partie();
 }
 
+void timestampToRead(time_t rawtime){
+    struct tm  ts;
+    char       buf[80];
+    ts = *localtime(&rawtime);
+    //strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
+    strftime(buf, sizeof(buf), "%H:%M:%S ", &ts);
+    printf("%s", buf);
+}
+
+
+void affichage(int shm_id){
+  struct shmid_ds buf;
+  shmctl(shm_id, IPC_STAT, &buf);
+	printf("Des informations sur la mémoire partagée : ");
+	printf ("\nThe USER ID = %d\n",
+         buf.shm_perm.uid);
+	printf ("The GROUP ID = %d\n",
+	 buf.shm_perm.gid);
+	printf ("The creator's ID = %d\n",
+	 buf.shm_perm.cuid);
+	printf ("The creator's group ID = %d\n",
+	 buf.shm_perm.cgid);
+	printf ("The operation permissions = 0%o\n",
+	 buf.shm_perm.mode);
+	printf ("The slot usage sequence\n");
+	printf ("number = 0%x\n",
+	 buf.shm_perm.__seq);
+	printf ("The key= 0%x\n",
+	 buf.shm_perm.__key);
+	printf ("The segment size = %ld\n",
+	 buf.shm_segsz);
+	printf ("The pid of last shmop = %d\n",
+	 buf.shm_lpid);
+	printf ("The pid of creator = %d\n",
+	 buf.shm_cpid);
+	printf ("The current # attached = %ld\n",
+	 buf.shm_nattch);
+	printf("The last shmat time = ");
+	timestampToRead(buf.shm_atime);
+   printf("\n");
+	printf("The last shmdt time = ");
+   timestampToRead(buf.shm_dtime);
+   printf("\n");
+	printf("The last change time = ");
+   timestampToRead(buf.shm_ctime);
+   printf("\n");
+}
 
 int lancer_partie(){
   int i = 0;
@@ -223,18 +274,10 @@ int lancer_partie(){
   int aMange = 1; // bool
   int nbCasesMangees = 0;
   int delay = 0;
-  if (id_joueur == 1){
-          getchar();
-          printf("init du jeu");
-        }
   if (id_joueur == 0)
   {
     initGrille();
   }
-  if (id_joueur == 1){
-          getchar();
-          printf("fin init du jeu");
-        }
   initscr();
   keypad(stdscr, TRUE);
   noecho();
@@ -242,37 +285,18 @@ int lancer_partie(){
   start_color();
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(0, COLOR_WHITE, COLOR_BLACK);
-  if (id_joueur == 1)
-  {
-    printf("avant du jeu");
-    getchar();
-  }
   // BOUCLE DE JEU
   while (!fail) {
     if (aMange){
-        if (id_joueur == 1){
-          printf("Lancement du jeu");
-          getchar();
-          
-        }
       //genererDuManger();
       nbCasesMangees ++;
       delay = 101 - nbCasesMangees;
       delay = (delay < 60) ? 60 : delay;
       timeout(delay); // On raffraichi toutes les 60 ms au max
     }
-    if (id_joueur == 1){
-      printf("Affichage du jeu");
-          getchar();
-          
-        }
     afficherGrille(snake);
     touche = getch();
-    if (id_joueur == 1){
-          getchar();
-          printf("gerer du jeu");
-        }
-    gererEvenement(&snake,touche,&fail,&direction,&aMange);
+    //gererEvenement(&snake,touche,&fail,&direction,&aMange);
     erase();
   }
 
@@ -293,7 +317,7 @@ int main (int argc, char * argv []) {
   nbLignes = 50;
   nbColonnes = 100;
   temp = sem_open("/tmp/mysem", O_CREAT, 0666, 1);
-  if (temp == -1) {
+  if (temp == (sem_t *) -1) {
     perror("Erreur pendant la création du sémaphore\n");
   }
   sem_unlink("/tmp/mysem");
@@ -303,24 +327,21 @@ int main (int argc, char * argv []) {
   afficherMenu();
   key_t key = ftok("/tmp/myshm", 'r');
   shm_id = shmget(key, nbLignes*sizeof(cellule *), 0666 | IPC_CREAT);
-  printf("%d", shm_id);
-  if (shm_id == -1){
-    perror("Erreur pendant la création de la mémoire partagée, suppression de la mémoire\n");
-    shm_id = shmget(key, nbLignes*sizeof(cellule *), 0666);
-    shmctl(shm_id, IPC_RMID, buf);
-  }
-  shm_id = shmget(key, nbLignes*sizeof(cellule *), 0666 | IPC_CREAT);
   if (shm_id == -1) {
     perror("Erreur pendant la création");
+    exit(1);
   }
   
   grille = (cellule ***) shmat(shm_id, 0, 0);
-
+  if (grille == (cellule ***) -1){
+    perror("Erreur shmat serveur\n");
+    exit(1);
+  }
   *grille = malloc(nbLignes * sizeof(cellule *));
   for (int i=0;i<nbLignes;i++) {
-    (*grille)[i] = (cellule *) shmat(shm_id, 0, 0);
     (*grille)[i] = malloc(nbColonnes*sizeof(cellule));
   }
+  affichage(shm_id);
   envoieSignal(pid_adv);
   lancer_partie();
 }
