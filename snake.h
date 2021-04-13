@@ -50,7 +50,7 @@ void ajouterEnTete (unSnake * snake, int ligne, int colonne,int * aMange, int * 
 void supprimerQueue(unSnake * snake);
 void initGrille();
 void afficherMenu();
-void afficherGrille(unSnake snake);
+void afficherGrille();
 void gererEvenement(unSnake * snake, int touche, int * fail, uneDirection * direction,int * aMange);
 void genererDuManger();
 void printFail();

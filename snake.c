@@ -2,9 +2,9 @@
 
 
 // VARIABLES GLOBALES
-cellule ** grille;
-int nbLignes = 0;
-int nbColonnes = 0;
+cellule (*grille)[100];
+int nbLignes = 50;
+int nbColonnes = 100;
 int mode = 1; // mode lolilol
 int pid_adv;
 int id_joueur = 0;
@@ -49,12 +49,12 @@ void ajouterEnTete (unSnake * snake, int ligne, int colonne,int * aMange, int * 
   nouvelleTete->colonne = colonne;
   nouvelleTete->suiv = NULL;
 
-  //sem_wait(temp);
+  sem_wait(temp);
   snake->teteSnake->suiv = nouvelleTete;
   grille[(snake->teteSnake->ligne)][(snake->teteSnake->colonne)].affichage = CORP_SNAKE;
   grille[(snake->teteSnake->ligne)][(snake->teteSnake->colonne)].couleur = 1;
   snake->teteSnake = snake->teteSnake->suiv;
-  //sem_post(temp);
+  sem_post(temp);
 
   // GESTION DES COLLISIONS 
   if ( mode) { 
@@ -85,11 +85,11 @@ void ajouterEnTete (unSnake * snake, int ligne, int colonne,int * aMange, int * 
 
 
   if(!*fail) {
-    //sem_wait(temp);
+    sem_wait(temp);
     *aMange = (grille[snake->teteSnake->ligne][snake->teteSnake->colonne].affichage == DU_MANGER) ? 1 : 0;
     grille[snake->teteSnake->ligne][snake->teteSnake->colonne].couleur = 1;
     grille[snake->teteSnake->ligne][snake->teteSnake->colonne].affichage = TETE_SNAKE;
-    //sem_post(temp);
+    sem_post(temp);
   }
 }
 
@@ -202,18 +202,19 @@ void envoieSignal(int pid) {
 
 void client_signal(int signal){
   id_joueur ++;
+  
   key_t key = ftok("/tmp/myshm", 'r');
-  shm_id = shmget(key, nbLignes*sizeof(cellule *), 0666);
+  shm_id = shmget(key, nbLignes * nbColonnes * sizeof(cellule *), 0666);
   if (shm_id == -1){
     perror("Erreur recupération client\n");
     exit(1);
   }
   grille = shmat(shm_id, NULL, 0);
-  if (grille == (cellule **) -1){
+  if (grille == (void * ) -1){
     perror("Erreur shmat client\n");
     exit(1);
   }
-  affichage(shm_id);
+  //affichage(shm_id);
   lancer_partie();
 }
 
@@ -277,24 +278,9 @@ int lancer_partie(){
   if (id_joueur == 0)
   {
     initGrille();
-    printf("%d", grille[0][0].affichage);
-    printf("%d", grille[0][1].affichage);
-    printf("%d", grille[0][2].affichage);
-    printf("%d", grille[0][3].affichage);
-    printf("%d", grille[0][4].affichage);
-      printf("cool serveur\n");
-  }
-  printf("%ld\n", sizeof(grille));
-  if(id_joueur == 1){
-    printf("%d", grille[0][0].affichage);
-    printf("%d", grille[0][1].affichage);
-    printf("%d", grille[0][2].affichage);
-    printf("%d", grille[0][3].affichage);
-    printf("%d", grille[0][4].affichage);
-    printf("cool");
   }
 
-  /*initscr();
+  initscr();
   keypad(stdscr, TRUE);
   noecho();
   cbreak();
@@ -302,31 +288,15 @@ int lancer_partie(){
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(0, COLOR_WHITE, COLOR_BLACK);
   // BOUCLE DE JEU
-  if (id_joueur == 1){
-    printf("Avant boucle");
-    getchar();
-  }
   while (!fail) {
     if (aMange){
-      if (id_joueur == 1){
-    printf("Avant generer");
-    getchar();
-  }
       genererDuManger();
       nbCasesMangees ++;
       delay = 101 - nbCasesMangees;
       delay = (delay < 60) ? 60 : delay;
       timeout(delay); // On raffraichi toutes les 60 ms au max
     }
-    if (id_joueur == 1){
-    printf("Avant afficher");
-    getchar();
-  }
     afficherGrille(snake);
-    if (id_joueur == 1){
-    printf("Avant gerer");
-    getchar();
-  }
     touche = getch();
     gererEvenement(&snake,touche,&fail,&direction,&aMange);
     erase();
@@ -340,7 +310,7 @@ int lancer_partie(){
 
   endwin();
   getchar();
-  return 0;*/
+  return 0;
 }
 
 
@@ -355,26 +325,22 @@ int main (int argc, char * argv []) {
   }
   
   signal(SIGINT, client_signal);
+  grille = malloc(nbLignes * nbColonnes * sizeof(cellule *));
   // INITIALISATIONS
-
   afficherMenu();
   key_t key = ftok("/tmp/myshm", 'r');
-  shm_id = shmget(key, nbLignes*sizeof(cellule *), 0666 | IPC_CREAT);
+  shm_id = shmget(key, nbLignes * nbColonnes * sizeof(cellule *), 0666 | IPC_CREAT);
+
   if (shm_id == -1) {
     perror("Erreur pendant la création");
     exit(1);
   }
-  
-  grille = (cellule **) shmat(shm_id, NULL, 0);
-  if (grille == (cellule **) -1){
+  grille = shmat(shm_id, NULL, 0);
+  if (grille == (void *) -1){
     perror("Erreur shmat serveur\n");
     exit(1);
   }
-  for (int i=0;i<nbLignes;i++) {
-    shm_id2 = shmget(IPC_PRIVATE, nbColonnes*sizeof(cellule), 0666 | IPC_CREAT);
-    grille[i] = (cellule *) shmat(shm_id2,NULL, 0);
-  }
-  affichage(shm_id);
+  //affichage(shm_id);
   envoieSignal(pid_adv);
   lancer_partie();
 }
