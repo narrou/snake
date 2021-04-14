@@ -1,1 +1,32 @@
-apt install xterm
+DOMONT Julien
+FACQUEUR Axel
+
+
+				Snake Battle
+
+
+Prérequis:
+
+- tester commande 'resize', si pas implémentée 'sudo apt install xterm'
+- makefile fonctionnel
+- lancer 'snake.exe' sur 2 terminaux
+- l'un des deux saisit le pid de l'autre (se référer aux affichages dans le terminal)
+- le jeu se lance
+
+
+Règles du jeu:
+
+- chacun possède son ver de couleur différente (rouge ou blanc)
+- on contrôle le ver avec les 4 flèches du clavier
+- possibilité de passer d'un côté du plateau à l'autre (les bords ne tuent pas le ver)
+- le ver est symbolisé par les pointillés (le corps) et (la tête)
+- les petites étoiles sont de la 'nourriture' qui permet d'agrandir le ver de 1 lorsqu'on passe dessus
+- le joueur qui touche avec sa tête le corps de l'adversaire perd la partie
+- il faut alors relancer le programme des 2 côtés pour rejouer
+
+
+On crée une mémoire partagée qui servira pour la grille de jeu. Les 2 processus de jeu auront accès à cette 
+mémoire pour afficher la grille et interagir dessus. Le joueur qui entre le pid de l'autre dans son terminal
+ envoie alors à celui-ci un signal pour le prévenir que la partie commence. Il y a donc bien 2 moyens de
+ communication inter-processus. Lorsqu'un joueur perd la partie, il envoie un signal pour prévenir l'autre de
+ la victoire.

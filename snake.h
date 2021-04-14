@@ -55,7 +55,7 @@ void gererEvenement(unSnake * snake, int touche, int * fail, uneDirection * dire
 void genererDuManger();
 void printFail();
 void envoieSignal(int pid);
-void client_signal(int signal);
+void client_signal(int signal,  siginfo_t *info, void *data);
 int lancer_partie();
 void affichage(int shm_id);
 void timestampToRead(time_t rawtime);

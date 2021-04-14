@@ -6,7 +6,7 @@ cellule (*grille)[100];
 int nbLignes = 50;
 int nbColonnes = 100;
 int mode = 1; // mode lolilol
-int pid_adv;
+int pid_adv, mon_pid;
 int id_joueur = 0;
 int key = 123456;
 int shm_id, shm_id2;
@@ -202,26 +202,55 @@ void printFail() {
   printw("_/        _/    _/  _/_/_/  _/_/_/_/ \n");
 }
 
-void envoieSignal(int pid) {
-  kill(pid, SIGINT);
+void printWin() {
+  move(nbLignes/2 - 5/2,nbColonnes/2 - 37/2);
+  printw("    __          _______ _   _    \n");
+  move(1 + nbLignes/2 - 5/2,nbColonnes/2 - 37/2);
+  printw("    \\ \\        / /_   _| \\ | |    \n");
+  move(2 + nbLignes/2 - 5/2,nbColonnes/2 - 37/2);
+  printw("     \\ \\  /\\  / /  | | |  \\| |     \n");
+  move(3 + nbLignes/2 - 5/2,nbColonnes/2 - 37/2);
+  printw("      \\ \\/  \\/ /   | | | . ` |      \n");  
+  move(4 + nbLignes/2 - 5/2,nbColonnes/2 - 37/2);
+  printw("       \\  /\\  /   _| |_| |\\  | \n");
+  move(5 + nbLignes/2 - 5/2,nbColonnes/2 - 37/2);
+  printw("        \\/  \\/   |_____|_| \\_| \n");
 }
 
-void client_signal(int signal){
-  id_joueur ++;
+void envoieSignal(int pid) {
+  kill(pid, SIGUSR1);
+}
+
+void client_signal(int signal, siginfo_t *info, void *data){
+  switch(signal){
+		case SIGUSR1: id_joueur ++;
+                pid_adv =(int) info->si_pid;
+                key_t key = ftok("/tmp/myshm", 'r');
+                shm_id = shmget(key, nbLignes * nbColonnes * sizeof(cellule *), 0666);
+                if (shm_id == -1){
+                  perror("Erreur recupération client\n");
+                  exit(1);
+                }
+                grille = shmat(shm_id, NULL, 0);
+                if (grille == (void * ) -1){
+                  perror("Erreur shmat client\n");
+                  exit(1);
+                }
+                //affichage(shm_id);
+                lancer_partie();
+			     break;
+		case SIGINT:
+      // Le joueur a win
+            erase();
+            printWin();
+            timeout(5000);
+            getch();
+            endwin();
+            exit(1);
+			     break;
+		default: break;
+	}
   
-  key_t key = ftok("/tmp/myshm", 'r');
-  shm_id = shmget(key, nbLignes * nbColonnes * sizeof(cellule *), 0666);
-  if (shm_id == -1){
-    perror("Erreur recupération client\n");
-    exit(1);
-  }
-  grille = shmat(shm_id, NULL, 0);
-  if (grille == (void * ) -1){
-    perror("Erreur shmat client\n");
-    exit(1);
-  }
-  //affichage(shm_id);
-  lancer_partie();
 }
 
 void timestampToRead(time_t rawtime){
@@ -293,7 +322,9 @@ int lancer_partie(){
   start_color();
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(0, COLOR_WHITE, COLOR_BLACK);
+  afficherGrille(snake);
   // BOUCLE DE JEU
+  
   while (!fail) {
     if (aMange){
       genererDuManger();
@@ -309,19 +340,24 @@ int lancer_partie(){
   }
 
   // Le joueur a fail
-  timeout(5000);
+  
   erase();
+  kill(pid_adv, SIGINT);
   printFail();
+  timeout(5000);
   getch();
-
   endwin();
-  getchar();
   return 0;
 }
 
 
 int main (int argc, char * argv []) {
+  int rep;
+  struct sigaction s;
+  s.sa_flags = SA_SIGINFO;
+  s.sa_sigaction = client_signal;
   system("resize -s 50 100");
+  mon_pid = getpid();
   nbLignes = 50;
   nbColonnes = 100;
   sem_unlink("/mysem");
@@ -329,8 +365,8 @@ int main (int argc, char * argv []) {
   if (temp == SEM_FAILED) {
     perror("Erreur pendant la création du sémaphore\n");
   }
-  
-  signal(SIGINT, client_signal);
+  sigaction(SIGINT, &s, NULL); 
+	sigaction(SIGUSR1, &s, NULL);
   grille = malloc(nbLignes * nbColonnes * sizeof(cellule *));
   // INITIALISATIONS
   afficherMenu();
