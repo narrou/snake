@@ -18,7 +18,6 @@
 #define DU_MANGER '*'
 #define CASE_VIDE ' '
 
-// STRUCTURES POUR LE SNAKE
 struct uneCellule {
   int ligne;
   int colonne;
@@ -54,7 +53,6 @@ void afficherGrille();
 void gererEvenement(unSnake * snake, int touche, int * fail, uneDirection * direction,int * aMange);
 void genererDuManger();
 void printFail();
-void envoieSignal(int pid);
 void client_signal(int signal,  siginfo_t *info, void *data);
 int lancer_partie();
 void affichage(int shm_id);
